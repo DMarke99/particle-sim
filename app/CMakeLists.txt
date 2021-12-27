@@ -11,7 +11,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -flto")
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 
 # compiles executable
-add_executable(main main.cpp)
-target_include_directories(main PUBLIC "${PROJECT_SOURCE_DIR}/inc")
-target_link_libraries(main PRIVATE src)
-target_compile_features(main PRIVATE cxx_std_14)
+add_executable(run_sim run_sim.cpp)
+target_link_libraries(run_sim PRIVATE src)
+target_compile_features(run_sim PRIVATE cxx_std_14)
+
+add_executable(test test.cpp)
+target_link_libraries(test PRIVATE src)
+target_compile_features(test PRIVATE cxx_std_14)

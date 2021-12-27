@@ -1,7 +1,10 @@
+#pragma once
 #include <vector>
 #include "physics.hpp"
+#include <array>
+#include <stdexcept>
 
-const int MAX_DEPTH = 32;
+const int MAX_OCTREE_DEPTH = 16;
 
 class Octree {
     private:
@@ -16,9 +19,9 @@ class Octree {
         float mass = 0;
         Vec3d weighted_pos = {0, 0, 0};
 
-        std::vector<Octree>* children = nullptr;
+        std::array<Octree*, 8> children;
 
-    public:
+    public: 
         Octree(const Vec3d& center, const float& width);
         Octree(
             const Vec3d& center, 
@@ -28,8 +31,8 @@ class Octree {
             Octree* root
         );
 
-        void create_children();
-        void remove_children();
+        std::vector<Particle*> get_particles() { return this->particles; };
+        std::array<Octree*, 8> get_children() { return this->children; };
 
         void add_particle(Particle& particle);
         void remove_particle(Particle& particle);
@@ -38,10 +41,12 @@ class Octree {
 
         Vec3d center_of_mass();
 
-        bool contains(Particle& particle);
-        int index(Particle& particle);
+        bool contains(const Particle& particle);
+        int index(const Particle& particle);
         bool is_in_range(const Particle& particle);
         int quadrant(const Particle& particle);
+
+        Vec3d get_force(const Particle& particle, const float& shrinkage);
 };
 
 Vec3d quadrant_idx_to_vec(const int& idx);
