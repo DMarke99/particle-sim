@@ -6,34 +6,34 @@
 
 const int MAX_OCTREE_DEPTH = 16;
 
-class Octree {
+class OctreeQueue {
     private:
         std::vector<std::reference_wrapper<const Particle>> particles;
         Vec3d center;
         float width;
         int depth;
 
-        Octree* parent;
-        Octree* root;
+        OctreeQueue* parent;
+        OctreeQueue* root;
 
         float mass = 0;
         Vec3d weighted_pos = {0, 0, 0};
 
-        std::array<Octree*, 8> children;
+        std::array<OctreeQueue*, 8> children;
 
     public: 
-        Octree(const Vec3d& center, const float& width);
-        Octree(
+        OctreeQueue(const Vec3d& center, const float& width);
+        OctreeQueue(
             const Vec3d& center, 
             const float& width,
             const int& depth, 
-            Octree* parent, 
-            Octree* root
+            OctreeQueue* parent, 
+            OctreeQueue* root
         );
 
         size_t size() { return this->particles.size(); };
         std::vector<std::reference_wrapper<const Particle>> get_particles() { return this->particles; };
-        std::array<Octree*, 8> get_children() { return this->children; };
+        std::array<OctreeQueue*, 8> get_children() { return this->children; };
 
         void add_particle(const Particle& particle);
         void remove_particle(const Particle& particle);

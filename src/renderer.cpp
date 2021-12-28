@@ -6,7 +6,7 @@ ParticleRenderer::ParticleRenderer(
     ParticleSimulator &simulator
 ): SCREEN_WIDTH(SCREEN_WIDTH), SCREEN_HEIGHT(SCREEN_HEIGHT) {
     this->simulator = &simulator;
-    this->SCALE_FACTOR = 0.25 * std::min(SCREEN_WIDTH, SCREEN_HEIGHT) / simulator.width;
+    this->SCALE_FACTOR = 0.5 * std::min(SCREEN_WIDTH, SCREEN_HEIGHT) / simulator.width / this->SDL_SCALE;
     this->frame = get_frame(simulator.center, simulator.width);
 }
 
@@ -24,6 +24,14 @@ void ParticleRenderer::init() {
     );
 
     this->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    SDL_RenderSetScale( this->renderer, this->SDL_SCALE, this->SDL_SCALE );
+}
+
+void ParticleRenderer::rotate_view(const Rotation& rotation) {
+
+    this->rot = get_rotation_matrix(rotation, 0.05) * this->rot;
+
 }
 
 void ParticleRenderer::clear_screen() {
@@ -43,10 +51,10 @@ void ParticleRenderer::draw_frame() {
         Vec3d p1 = this->rot * (line[1] - this->simulator->center) / this->simulator->width;
 
         SDL_RenderDrawLine(this->renderer, 
-            round(this->SCALE_FACTOR * p0.x + this->SCREEN_WIDTH/2), 
-            round(this->SCALE_FACTOR * p0.y + this->SCREEN_HEIGHT/2),
-            round(this->SCALE_FACTOR * p1.x + this->SCREEN_WIDTH/2), 
-            round(this->SCALE_FACTOR * p1.y + this->SCREEN_HEIGHT/2)
+            round(this->SCALE_FACTOR * p0.x + this->SCREEN_WIDTH/2/this->SDL_SCALE), 
+            round(this->SCALE_FACTOR * p0.y + this->SCREEN_HEIGHT/2/this->SDL_SCALE),
+            round(this->SCALE_FACTOR * p1.x + this->SCREEN_WIDTH/2/this->SDL_SCALE), 
+            round(this->SCALE_FACTOR * p1.y + this->SCREEN_HEIGHT/2/this->SDL_SCALE)
         );
     }
 }
@@ -56,11 +64,11 @@ void ParticleRenderer::draw_particles() {
     SDL_SetRenderDrawColor( this->renderer, 225, 255, 255, 127 );
 
     for (auto particle : this->simulator->particles) {
-        Vec3d pos = this->rot * particle.pos;
+        Vec3d pos = this->rot * (particle.pos - this->simulator->center) / this->simulator->width;
 
         SDL_RenderDrawPoint(this->renderer, 
-            round(this->SCALE_FACTOR * pos.x + this->SCREEN_WIDTH/2), 
-            round(this->SCALE_FACTOR * pos.y + this->SCREEN_HEIGHT/2)
+            round(this->SCALE_FACTOR * pos.x + this->SCREEN_WIDTH/2/this->SDL_SCALE), 
+            round(this->SCALE_FACTOR * pos.y + this->SCREEN_HEIGHT/2/this->SDL_SCALE)
         );
     }
 }
@@ -83,27 +91,33 @@ void ParticleRenderer::run() {
     // Clears window
     this->clear_screen();
 
-    // Creat a rect at pos ( 50, 50 ) that's 50 pixels wide and 50 pixels high.
-    SDL_Rect r;
-    r.x = 50;
-    r.y = 50;
-    r.w = 50;
-    r.h = 50;
-
-    // Set render color to blue ( rect will be rendered in this color )
-    SDL_SetRenderDrawColor( this->renderer, 0, 0, 255, 255 );
-
-    // Render rect
-    SDL_RenderFillRect( this->renderer, &r );
-
-    int i = 0;
     SDL_Event e;
     bool quit = false;
     while (!quit){
         while (SDL_PollEvent(&e)){
-            if (e.type == SDL_QUIT){
-                quit = true;
+            switch(e.type) {
+                case SDL_QUIT:
+                    quit = true;
+                    break;
+                case SDL_KEYDOWN:
+                    switch( e.key.keysym.sym )
+                    {
+                        case SDLK_UP: 
+                            this->rotate_view(Rotation::up); 
+                            break;
+                        case SDLK_DOWN: 
+                            this->rotate_view(Rotation::down);
+                            break;
+                        case SDLK_LEFT: 
+                            this->rotate_view(Rotation::left);
+                            break;
+                        case SDLK_RIGHT: 
+                            this->rotate_view(Rotation::right);
+                            break;
+                    }
+                    break;
             }
+
         }
 
         // Runs one step of the simulation
@@ -112,8 +126,6 @@ void ParticleRenderer::run() {
         // Draws screen elements
         this->render();
 
-        //std::cout << ++i << std::endl;
-        if (i == 10) quit = true;
         // Render the rect to the screen
         SDL_RenderPresent( this->renderer);
     }
@@ -149,4 +161,23 @@ std::vector<std::array<Vec3d, 2>> get_frame(const Vec3d& center, const float& wi
     );
 
     return res;
+}
+
+Mat3d get_rotation_matrix(const Rotation& rotation, const float& theta) {
+    switch (rotation) {
+        case Rotation::left:
+            return {{cos(theta), 0, -sin(theta)}, {0,1,0}, {sin(theta), 0, cos(theta)}};
+        case Rotation::right:
+            return {{cos(theta), 0, sin(theta)}, {0,1,0}, {-sin(theta), 0, cos(theta)}};
+        case Rotation::up:
+            return {{1,0,0}, {0, cos(theta), -sin(theta)}, {0, sin(theta), cos(theta)}};
+        case Rotation::down:
+            return {{1,0,0}, {0, cos(theta), sin(theta)}, {0, -sin(theta), cos(theta)}};
+        case Rotation::anticlockwise:
+            return {{cos(theta), sin(theta), 0}, {-sin(theta), cos(theta),0}, {0,0,1}};
+        case Rotation::clockwise:
+            return {{cos(theta), -sin(theta), 0}, {sin(theta), cos(theta),0}, {0,0,1}};
+        default:
+            return {{1,0,0},{0,1,0},{0,0,1}};
+    }
 }

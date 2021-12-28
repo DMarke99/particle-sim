@@ -1,12 +1,12 @@
 #include "renderer.hpp"
 
 int main() {
-    int N = 20;
+    int N = 1500;
     ParticleSimulator sim = ParticleSimulator(N);
 
     ParticleRenderer renderer = ParticleRenderer(
-      1200,
-      900,
+      800,
+      800,
       sim
     );
     renderer.init();

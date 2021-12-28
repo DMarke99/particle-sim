@@ -62,6 +62,9 @@ void check_octree(){
 
     std::cout << "Center of mass: " << com << std::endl;
     std::cout << std::endl;
+
+    std::cout << "Test Forces" << std::endl;
+    std::cout << octree.get_force(p3, 0.0) << std::endl;
     
 }
 
@@ -89,6 +92,6 @@ int main() {
     test_math();
     simple_octree();
     check_octree();
-    run_sim();
+    //run_sim();
     return 0;
 }

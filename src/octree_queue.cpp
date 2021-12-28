@@ -1,4 +1,4 @@
-#include "octree.hpp"
+#include "octree_queue.hpp"
 
 Octree::Octree(
     const Vec3d& center, 
