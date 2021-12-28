@@ -42,7 +42,7 @@ void check_octree(){
     Particle p4 = {1, {1, 1, 0.5}, {0, 0, 0}, {0, 0, 0} };
     Particle p5 = {1, {1, 1, 1}, {0, 0, 0}, {0, 0, 0} };
     Particle p6 = {1, {1, 1, 0.55}, {0, 0, 0}, {0, 0, 0} };
-    Octree octree = Octree({0, 0, 0}, 4);
+    OctreeQueue octree = Octree({0, 0, 0}, 4);
 
     octree.add_particle(p1);
     octree.add_particle(p2);
@@ -92,6 +92,5 @@ int main() {
     test_math();
     simple_octree();
     check_octree();
-    //run_sim();
     return 0;
 }

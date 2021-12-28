@@ -17,13 +17,11 @@ ParticleSimulator::ParticleSimulator(
 };
 
 void ParticleSimulator::update_forces(const float& approx_threshold) {
-
     for (auto& particle : this->particles) {
-        this->octree.remove_particle(particle);
+        this->octree.pop_particle();
         particle.a = this->octree.get_force(particle, approx_threshold) / particle.mass;
         this->octree.add_particle(particle);
     }
-    
 };
 
 void ParticleSimulator::move_particles(const float& dt) {
@@ -49,8 +47,9 @@ void ParticleSimulator::move_particles(const float& dt) {
 };
 
 void ParticleSimulator::update_octree() {
-    this->octree = Octree(this->center, this->width);
-    for (auto particle : this->particles) {
+    //this->octree = OctreeQueue(center, width);
+    for (auto& particle : this->particles) {
+        this->octree.pop_particle();
         this->octree.add_particle(particle);
     }
 };

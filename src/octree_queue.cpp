@@ -1,39 +1,84 @@
 #include "octree_queue.hpp"
 
-Octree::Octree(
+OctreeQueue::OctreeQueue(
     const Vec3d& center, 
     const float& width
-): particles({}), center(center), width(width), depth(0), parent(nullptr), root(this) {
-    this->children.fill(nullptr);
+): particles({}), quadrants({}), center(center), width(width), depth(0), parent(nullptr), root(this) {
+    this->children = { nullptr };
 };
 
-Octree::Octree(
+OctreeQueue::OctreeQueue(
     const Vec3d& center, 
     const float& width,
     const int& depth,
-    Octree* parent, 
-    Octree* root
-): particles({}), center(center), width(width), depth(depth), parent(parent), root(root) {
-    this->children.fill(nullptr);
+    OctreeQueue* parent, 
+    OctreeQueue* root
+): particles({}), quadrants({}), center(center), width(width), depth(depth), parent(parent), root(root) {
+    this->children = { nullptr };
 };
 
 
-void Octree::add_particle(const Particle& particle) {
+void OctreeQueue::add_particle(const Particle& particle) {
     if (this->particles.size() == 1) {
-        this->add_particle_to_children(this->particles[0]);
+        this->add_particle_to_children(this->particles.front());
     }
+
+    this->particles.push_back(particle);
+    this->quadrants.push_back(this->quadrant(particle));
+    this->weighted_pos += (particle.mass * particle.pos);
+    this->mass += particle.mass;
 
     if (this->particles.size() > 0) {
         this->add_particle_to_children(particle);
     }
 
-    this->particles.push_back(particle);
-    this->weighted_pos += (particle.mass * particle.pos);
-    this->mass += particle.mass;
 
 };
 
-void Octree::remove_particle(const Particle& particle) {
+void OctreeQueue::add_particle_to_children(const Particle& particle) {
+    int idx = this->quadrants.back();
+    if (this->depth < MAX_OCTREE_DEPTH) {
+        if (this->children[idx] == nullptr) {
+            this->children[idx] = std::make_unique<OctreeQueue>(
+                this->center+quadrant_idx_to_vec(idx)*this->width, 
+                this->width/2,
+                this->depth+1, 
+                this, 
+                this->root
+            );
+        }
+        this->children[idx]->add_particle(particle);
+    } 
+};
+
+
+void OctreeQueue::pop_particle() {
+    if (this->particles.size() > 1) {
+        this->pop_particle_from_children();
+    }
+    Particle particle = this->particles.front();
+    this->particles.pop_front();
+    this->quadrants.pop_front();
+    this->weighted_pos -= (particle.mass * particle.pos);
+    this->mass -= particle.mass;
+
+    if (this->particles.size() == 1) {
+        this->pop_particle_from_children();
+    }
+};
+
+void OctreeQueue::pop_particle_from_children() {
+    int idx = this->quadrants.front();
+    if (this->children[idx] != nullptr) {
+        this->children[idx]->pop_particle();
+        if (this->children[idx]->size() == 0) {
+            this->children[idx] = nullptr;
+        }
+    }
+};
+
+
+void OctreeQueue::remove_particle(const Particle& particle) {
     int idx = this->index(particle);
     if (idx >= 0) {
         this->particles.erase (this->particles.begin()+idx);
@@ -47,23 +92,7 @@ void Octree::remove_particle(const Particle& particle) {
     }
 };
 
-void Octree::add_particle_to_children(const Particle& particle) {
-    int idx = this->quadrant(particle);
-    if (idx >= 0 and this->depth < MAX_OCTREE_DEPTH) {
-        if (this->children[idx] == nullptr) {
-            this->children[idx] = new Octree(
-                this->center+quadrant_idx_to_vec(idx)*this->width, 
-                this->width/2,
-                this->depth+1, 
-                this, 
-                this->root
-            );
-        }
-        this->children[idx]->add_particle(particle);
-    } 
-};
-
-void Octree::remove_particle_from_children(const Particle& particle) {
+void OctreeQueue::remove_particle_from_children(const Particle& particle) {
     //std::cout << particle.pos << std::endl;
     //std::cout << this->width << std::endl;
     //std::cout << this->center << std::endl;
@@ -72,26 +101,26 @@ void Octree::remove_particle_from_children(const Particle& particle) {
         //std::cout << idx << std::endl;
         if (this->children[idx] != nullptr) {
             this->children[idx]->remove_particle(particle);
-            if (this->children[idx]->get_particles().size() == 0) {
-                delete this->children[idx];
+            if (this->children[idx]->size() == 0) {
                 this->children[idx] = nullptr;
             }
         }
     }
 };
 
-Vec3d Octree::center_of_mass() {
+
+Vec3d OctreeQueue::center_of_mass() {
     return this->particles.size() == 0 ? weighted_pos : (weighted_pos / mass);
 };
 
-bool Octree::contains(const Particle& particle) {
+bool OctreeQueue::contains(const Particle& particle) {
     for (auto _p : this->particles){
         if (_p.get().ID == particle.ID) return true;
     }
     return false;
 };
 
-int Octree::index(const Particle& particle) {
+int OctreeQueue::index(const Particle& particle) {
     int idx = 0;
     for (auto _p : this->particles){
         if (_p.get().ID == particle.ID) return idx;
@@ -100,7 +129,7 @@ int Octree::index(const Particle& particle) {
     return -1;
 };
 
-bool Octree::is_in_range(const Particle& particle) {
+bool OctreeQueue::is_in_range(const Particle& particle) {
     Vec3d relative_pos = particle.pos - this->center;
     if (relative_pos.x > this->width/2) return false;
     else if (relative_pos.x < -this->width/2) return false;
@@ -111,8 +140,8 @@ bool Octree::is_in_range(const Particle& particle) {
     else return true;
 };
 
-int Octree::quadrant(const Particle& particle) {
-    if (!this->is_in_range(particle)) return -1;
+int OctreeQueue::quadrant(const Particle& particle) {
+    //if (!this->is_in_range(particle)) return -1;
 
     int idx = 0;
     if (particle.pos.x > this->center.x) idx += 1;
@@ -136,7 +165,7 @@ Vec3d quadrant_idx_to_vec(const int& idx) {
     }
 }
 
-Vec3d Octree::get_force(const Particle& particle, const float& approx_threshold) {
+Vec3d OctreeQueue::get_force(const Particle& particle, const float& approx_threshold) {
 
     if (this->particles.size() == 0 or this->mass == 0) {
         return {0,0,0};
@@ -155,7 +184,7 @@ Vec3d Octree::get_force(const Particle& particle, const float& approx_threshold)
         if (factor >= threshold) {
             Vec3d total_force = {0,0,0};
             bool is_leaf = true;
-            for (auto child : this->children){
+            for (auto& child : this->children){
                 if (child != nullptr) {
                     total_force += child->get_force(particle, approx_threshold);
                     is_leaf = false;

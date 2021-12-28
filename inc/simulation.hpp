@@ -1,5 +1,5 @@
 #pragma once
-#include "octree.hpp"
+#include "octree_queue.hpp"
 #include <math.h>
 
 class ParticleSimulator {
@@ -7,7 +7,7 @@ class ParticleSimulator {
         std::vector<Particle> particles = {};
         Vec3d center;
         float width;
-        Octree octree;
+        OctreeQueue octree;
         ParticleSimulator(
             const int& N, 
             const Vec3d& center={0,0,0}, 
@@ -16,7 +16,7 @@ class ParticleSimulator {
         void update_forces(const float& approx_threshold);
         void move_particles(const float& dt); 
         void update_octree(); 
-        void step(const float& dt=0.05, const float& approx_threshold=2.0);  
+        void step(const float& dt=0.05, const float& approx_threshold=1.0);  
 };
 
 float reflect_pos_coord(const float& x, const float& width);

@@ -1,14 +1,15 @@
 #pragma once
-#include <vector>
-#include "physics.hpp"
+#include <deque>
 #include <array>
 #include <stdexcept>
+#include "physics.hpp"
 
-const int MAX_OCTREE_DEPTH = 16;
+const int MAX_OCTREE_DEPTH = 6;
 
 class OctreeQueue {
     private:
-        std::vector<std::reference_wrapper<const Particle>> particles;
+        std::deque<std::reference_wrapper<const Particle>> particles;
+        std::deque<int> quadrants;
         Vec3d center;
         float width;
         int depth;
@@ -19,7 +20,7 @@ class OctreeQueue {
         float mass = 0;
         Vec3d weighted_pos = {0, 0, 0};
 
-        std::array<OctreeQueue*, 8> children;
+        std::array<std::unique_ptr<OctreeQueue>, 8> children;
 
     public: 
         OctreeQueue(const Vec3d& center, const float& width);
@@ -32,13 +33,15 @@ class OctreeQueue {
         );
 
         size_t size() { return this->particles.size(); };
-        std::vector<std::reference_wrapper<const Particle>> get_particles() { return this->particles; };
-        std::array<OctreeQueue*, 8> get_children() { return this->children; };
+        std::deque<std::reference_wrapper<const Particle>> get_particles() { return this->particles; };
+        std::array<std::unique_ptr<OctreeQueue>, 8>& get_children() { return this->children; };
 
         void add_particle(const Particle& particle);
+        void pop_particle();
         void remove_particle(const Particle& particle);
         void add_particle_to_children(const Particle& particle);
         void remove_particle_from_children(const Particle& particle);
+        void pop_particle_from_children();
 
         Vec3d center_of_mass();
 

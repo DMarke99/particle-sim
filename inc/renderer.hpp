@@ -2,6 +2,10 @@
 #include "SDL.h" 
 #include "simulation.hpp"
 #include <array>
+#include <ctime>
+#include <ratio>
+#include <chrono>
+#include <string> 
 
 enum Rotation {
     left, right, up, down, clockwise, anticlockwise

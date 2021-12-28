@@ -26,6 +26,8 @@ void ParticleRenderer::init() {
     this->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     SDL_RenderSetScale( this->renderer, this->SDL_SCALE, this->SDL_SCALE );
+
+    SDL_SetRenderDrawBlendMode( this->renderer, SDL_BLENDMODE_BLEND);
 }
 
 void ParticleRenderer::rotate_view(const Rotation& rotation) {
@@ -44,7 +46,7 @@ void ParticleRenderer::clear_screen() {
 
 void ParticleRenderer::draw_frame() {
     // Set render color to white 
-    SDL_SetRenderDrawColor( this->renderer, 225, 255, 255, 255 );
+    SDL_SetRenderDrawColor( this->renderer, 127, 127, 127, 255 );
 
     for (auto line : this->frame) {
         Vec3d p0 = this->rot * (line[0] - this->simulator->center) / this->simulator->width;
@@ -61,7 +63,7 @@ void ParticleRenderer::draw_frame() {
 
 void ParticleRenderer::draw_particles() {
     // Set render color to white 
-    SDL_SetRenderDrawColor( this->renderer, 225, 255, 255, 127 );
+    SDL_SetRenderDrawColor( this->renderer, 225, 255, 255, 95 );
 
     for (auto particle : this->simulator->particles) {
         Vec3d pos = this->rot * (particle.pos - this->simulator->center) / this->simulator->width;
@@ -91,9 +93,18 @@ void ParticleRenderer::run() {
     // Clears window
     this->clear_screen();
 
+    // Gets timers
+    using namespace std::chrono;
+    double avg_iter_duration = 0.0;
+    double fps_denom = 0.0;
+    float decay_const = 0.1;
+
     SDL_Event e;
     bool quit = false;
     while (!quit){
+
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
         while (SDL_PollEvent(&e)){
             switch(e.type) {
                 case SDL_QUIT:
@@ -128,6 +139,18 @@ void ParticleRenderer::run() {
 
         // Render the rect to the screen
         SDL_RenderPresent( this->renderer);
+
+        // Estimates FPS
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+        duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
+        avg_iter_duration += decay_const * (time_span.count() - avg_iter_duration);
+        fps_denom += decay_const * (1 - fps_denom);
+
+        int FPS = floor(fps_denom/avg_iter_duration);
+        std::string new_title = "Particle Simulation - FPS: " +  std::to_string(FPS);
+        SDL_SetWindowTitle( this->window, new_title.c_str());
     }
 }
 
